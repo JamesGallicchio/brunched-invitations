@@ -2,8 +2,33 @@ import Mathlib
 
 namespace BunchedImplications
 
+/-! ## Propositions -/
+
+/-- Propositions, with atoms in sort `P` -/
+inductive Typ (P : Sort u)
+| atom : P → Typ P
+/- Structural connectives -/
+| arr : Typ P → Typ P → Typ P
+| tr : Typ P
+| and : Typ P → Typ P → Typ P
+| fls : Typ P
+| or : Typ P → Typ P → Typ P
+/- Linear connectives -/
+| dandy : Typ P → Typ P → Typ P
+| emp : Typ P
+| star : Typ P → Typ P → Typ P
+
+namespace Typ
+scoped notation a " -* " b => dandy a b
+scoped notation a " * " b => star a b
+end Typ
+
+open Typ
+
+
+/-- Bunches, the contexts of bunched logic. -/
 inductive Bunch (P : Sort u)
-| atom : P → Bunch P
+| prop : Typ P → Bunch P
 | cunit : Bunch P
 | comma : Bunch P → Bunch P → Bunch P
 | sunit : Bunch P
@@ -96,6 +121,8 @@ theorem iff_subtree : BunchSubtreeSubst B1 b1 B1 b1 ↔ BunchSubtree B1 b1 := by
     case semiL => exact .semiL ‹_›
     case semiR => exact .semiR ‹_›
 
+theorem symm : BunchSubtreeSubst B1 b1 B2 b2 → BunchSubtreeSubst B2 b2 B1 b1 := by sorry
+
 end BunchSubtreeSubst
 
 /-- Bunch with a hole, written as `Γ(-)` in the original paper.
@@ -139,25 +166,6 @@ def BunchEquiv.is_equivalence : Equivalence (@BunchEquiv P) :=
 instance : HasEquiv (Bunch P) := ⟨BunchEquiv⟩
 
 
-inductive Typ (P : Sort u)
-| atom : P → Typ P
-/- Structural connectives -/
-| arr : Typ P → Typ P → Typ P
-| tr : Typ P
-| and : Typ P → Typ P → Typ P
-| fls : Typ P
-| or : Typ P → Typ P → Typ P
-/- Linear connectives -/
-| dandy : Typ P → Typ P → Typ P
-| emp : Typ P
-| star : Typ P → Typ P → Typ P
-
-namespace Typ
-scoped notation a " -* " b => dandy a b
-scoped notation a " * " b => star a b
-end Typ
-
-open Typ
 
 open Bunch in
 inductive Entails {P : Type u} : Bunch P → Typ P → Prop
@@ -166,3 +174,15 @@ inductive Entails {P : Type u} : Bunch P → Typ P → Prop
   Entails Γ (φ -* ψ) →
   Entails Δ φ        →
     Entails (Γ, Δ) ψ
+
+theorem id_admissible
+  : Entails (.prop φ) φ
+  := by
+  sorry
+
+theorem cut_admissible {Γφ ΓΔ Δ : Bunch P} {φ : Typ P}
+    (hΓ : BunchSubtreeSubst ΓΔ Δ Γφ (.prop φ))
+  : Entails Γφ ψ → Entails Δ φ →
+    Entails ΓΔ ψ
+  := by
+  sorry
