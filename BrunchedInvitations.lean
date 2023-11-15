@@ -2,6 +2,143 @@ import Mathlib
 
 namespace BunchedImplications
 
+inductive Bunch (P : Sort u)
+| atom : P → Bunch P
+| cunit : Bunch P
+| comma : Bunch P → Bunch P → Bunch P
+| sunit : Bunch P
+| semi : Bunch P → Bunch P → Bunch P
+
+namespace Bunch
+scoped infixr:10 " , " => Bunch.comma
+scoped infixr:10 " ; " => Bunch.semi
+end Bunch
+
+open Bunch in
+/-- `BunchSubtree B b` iff `b` is a subtree of `B` -/
+inductive BunchSubtree {P : Sort u} : Bunch P → Bunch P → Prop
+| refl : BunchSubtree b b
+| commaL : BunchSubtree BL b → BunchSubtree (BL, BR) b
+| commaR : BunchSubtree BR b → BunchSubtree (BL, BR) b
+| semiL : BunchSubtree BL b → BunchSubtree (BL; BR) b
+| semiR : BunchSubtree BR b → BunchSubtree (BL; BR) b
+
+namespace BunchSubtree
+
+attribute [refl] BunchSubtree.refl
+theorem trans : BunchSubtree b1 b2 → BunchSubtree b2 b3 → BunchSubtree b1 b3 :=
+  sorry
+
+end BunchSubtree
+
+open Bunch in
+/-- `BunchSubtreeSubst B1 b1 B2 b2` iff `B1` and `B2` are identical
+except for one subtree at which `b2` was substituted for `b1`.
+
+```
+    B1       B2
+   /| \     /| \
+  a b b1   a b b2
+```
+-/
+inductive BunchSubtreeSubst {P : Sort u}
+  : Bunch P → Bunch P → Bunch P → Bunch P → Prop
+| refl : BunchSubtreeSubst b1 b1 b2 b2
+| commaR
+  : BunchSubtreeSubst B1 b1 B2 b2 →
+    BunchSubtreeSubst (B, B1) b1 (B, B2) b2
+| commaL
+  : BunchSubtreeSubst B1 b1 B2 b2 →
+    BunchSubtreeSubst (B1, B) b1 (B2, B) b2
+| semiR
+  : BunchSubtreeSubst B1 b1 B2 b2 →
+    BunchSubtreeSubst (B; B1) b1 (B; B2) b2
+| semiL
+  : BunchSubtreeSubst B1 b1 B2 b2 →
+    BunchSubtreeSubst (B1; B) b1 (B2; B) b2
+
+namespace BunchSubtreeSubst
+
+theorem iff_subtree : BunchSubtreeSubst B1 b1 B1 b1 ↔ BunchSubtree B1 b1 := by
+  constructor
+  · intro h
+    have : _ → _ → _ := by
+      apply h.rec (motive := fun B1 b1 B2 b2 _ => B1 = B2 → b1 = b2 → BunchSubtree B1 b1)
+      case refl =>
+        rintro b1 b2 rfl _
+        rfl
+      case commaL =>
+        rintro b1 b2 b3 b4 b _ ih h1 rfl
+        cases h1
+        simp at ih
+        exact BunchSubtree.commaL ih
+      case commaR =>
+        rintro b1 b2 b3 b4 b _ ih h1 rfl
+        cases h1
+        simp at ih
+        exact BunchSubtree.commaR ih
+      case semiL =>
+        rintro b1 b2 b3 b4 b _ ih h1 rfl
+        cases h1
+        simp at ih
+        exact BunchSubtree.semiL ih
+      case semiR =>
+        rintro b1 b2 b3 b4 b _ ih h1 rfl
+        cases h1
+        simp at ih
+        exact BunchSubtree.semiR ih
+    simp at this; exact this
+  · intro h
+    induction h
+    case refl => exact .refl
+    case commaL => exact .commaL ‹_›
+    case commaR => exact .commaR ‹_›
+    case semiL => exact .semiL ‹_›
+    case semiR => exact .semiR ‹_›
+
+end BunchSubtreeSubst
+
+/-- Bunch with a hole, written as `Γ(-)` in the original paper.
+
+Probably better to always reason about `BunchSubtreeSubst`s directly. -/
+structure BunchWithHole (P) where
+  toFun : Bunch P → Bunch P
+  subtreeSubst : ∀ b1 b2, BunchSubtreeSubst (toFun b1) b1 (toFun b2) b2
+
+namespace BunchWithHole
+
+instance : CoeFun (BunchWithHole P) (λ _ => Bunch P → Bunch P) :=
+  ⟨BunchWithHole.toFun⟩
+
+end BunchWithHole
+
+open Bunch in
+/-- This is the relation on bunches
+which we close over to get bunch equivalence. -/
+inductive BunchPreEquiv {P : Sort u} : Bunch P → Bunch P → Prop
+/- Comm. monoid laws for `,` with `cunit` -/
+| cunitL : BunchPreEquiv (.cunit, b) b
+| cunitR : BunchPreEquiv (b, .cunit) b
+| commaAssoc : BunchPreEquiv (b1, b2, b3) ((b1, b2), b3)
+| commaComm : BunchPreEquiv (b1, b2) (b2, b1)
+/- Comm. monoid laws for `;` with `sunit` -/
+| sunitL : BunchPreEquiv (.sunit; b) b
+| sunitR : BunchPreEquiv (b; .sunit) b
+| semiAssoc : BunchPreEquiv (b1; b2; b3) ((b1; b2); b3)
+| semiComm : BunchPreEquiv (b1; b2) (b2; b1)
+/- Subtree congruence -/
+| subtree (h : BunchSubtreeSubst B1 b1 B2 b2) : BunchPreEquiv b1 b2 → BunchPreEquiv B1 B2
+
+/-- Equivalence on bunches. -/
+def BunchEquiv {P : Type u} : Bunch P → Bunch P → Prop :=
+  EqvGen BunchPreEquiv
+
+def BunchEquiv.is_equivalence : Equivalence (@BunchEquiv P) :=
+  EqvGen.is_equivalence _
+
+instance : HasEquiv (Bunch P) := ⟨BunchEquiv⟩
+
+
 inductive Typ (P : Sort u)
 | atom : P → Typ P
 /- Structural connectives -/
@@ -15,61 +152,17 @@ inductive Typ (P : Sort u)
 | emp : Typ P
 | star : Typ P → Typ P → Typ P
 
-inductive Bunch (P : Sort u)
-| atom : P → Bunch P
-| cunit : Bunch P
-| comma : Bunch P → Bunch P → Bunch P
-| sunit : Bunch P
-| semi : Bunch P → Bunch P → Bunch P
+namespace Typ
+scoped notation a " -* " b => dandy a b
+scoped notation a " * " b => star a b
+end Typ
 
-scoped infixr:10 " , " => Bunch.comma
-scoped infixr:10 " ; " => Bunch.semi
+open Typ
 
-/-- `BunchSubtree B b` if `b` is a subtree of `B` -/
-inductive BunchSubtree {P : Sort u} : Bunch P → Bunch P → Prop
-| rfl (b : Bunch P) : BunchSubtree b b
-| commaL {BL BR b} : BunchSubtree BL b → BunchSubtree (BL, BR) b
-| commaR {BL BR b} : BunchSubtree BR b → BunchSubtree (BL, BR) b
-| semiL {BL BR b} : BunchSubtree BL b → BunchSubtree (BL; BR) b
-| semiR {BL BR b} : BunchSubtree BR b → BunchSubtree (BL; BR) b
-
-namespace BunchSubtree
-
-theorem refl : BunchSubtree b b := .rfl b
-theorem trans : BunchSubtree b1 b2 → BunchSubtree b2 b3 → BunchSubtree b1 b3 :=
-  sorry
-
-end BunchSubtree
-
-structure BunchWithHole (P) where
-  toFun : Bunch P → Bunch P
-  subtree : ∀ b, BunchSubtree (toFun b) b
-
-instance : CoeFun (BunchWithHole P) (λ _ => Bunch P → Bunch P) :=
-  ⟨BunchWithHole.toFun⟩
-
-inductive BunchPreEquiv {P : Sort u} : Bunch P → Bunch P → Prop
-/- Comm. monoid laws for `,` with `cunit` -/
-| cunitL : BunchPreEquiv (.cunit, b) b
-| cunitR : BunchPreEquiv (b, .cunit) b
-| commaAssoc : BunchPreEquiv (b1, b2, b3) ((b1, b2), b3)
-| commaComm : BunchPreEquiv (b1, b2) (b2, b1)
-/- Comm. monoid laws for `;` with `sunit` -/
-| sunitL : BunchPreEquiv (.sunit; b) b
-| sunitR : BunchPreEquiv (b; .sunit) b
-| semiAssoc : BunchPreEquiv (b1; b2; b3) ((b1; b2); b3)
-| semiComm : BunchPreEquiv (b1; b2) (b2; b1)
-/- Subtree congruence -/
-| subtree (h : BunchWithHole P) : BunchPreEquiv b1 b2 → BunchPreEquiv (h b1) (h b2)
-
-/-- Equivalence on bunches -/
-def BunchEquiv {P : Type u} : Bunch P → Bunch P → Prop :=
-  EqvGen BunchPreEquiv
-
-def BunchEquiv.is_equivalence : Equivalence (@BunchEquiv P) :=
-  EqvGen.is_equivalence _
-
-instance : HasEquiv (Bunch P) := ⟨BunchEquiv⟩
-
+open Bunch in
 inductive Entails {P : Type u} : Bunch P → Typ P → Prop
-/- TODO write down the rules -/
+/- TODO write down rest of the rules -/
+| dandyE :
+  Entails Γ (φ -* ψ) →
+  Entails Δ φ        →
+    Entails (Γ, Δ) ψ
