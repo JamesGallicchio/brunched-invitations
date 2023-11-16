@@ -51,8 +51,7 @@ inductive BunchSubtree {P : Sort u} : Bunch P → Bunch P → Prop
 namespace BunchSubtree
 
 attribute [refl] BunchSubtree.refl
-theorem trans : BunchSubtree b1 b2 → BunchSubtree b2 b3 → BunchSubtree b1 b3 :=
-  sorry
+theorem trans : BunchSubtree b1 b2 → BunchSubtree b2 b3 → BunchSubtree b1 b3 := by sorry
 
 end BunchSubtree
 
@@ -174,6 +173,13 @@ inductive Entails {P : Type u} : Bunch P → Typ P → Prop
   Entails Γ (φ -* ψ) →
   Entails Δ φ        →
     Entails (Γ, Δ) ψ
+| dandyI :
+  Entails (comma Γ (prop φ)) ψ →
+  Entails Γ (φ -* ψ)
+| starI :
+  Entails Γ φ →
+  Entails Δ ψ →
+  Entails (comma Γ Δ) (star φ ψ)
 
 theorem id_admissible
   : Entails (.prop φ) φ
