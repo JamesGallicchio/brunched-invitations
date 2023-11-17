@@ -174,6 +174,11 @@ inductive Entails {P : Type u} : Bunch P → Typ P → Prop
 | dandyI :
   Entails (comma Γ (prop φ)) ψ →
   Entails Γ (φ -* ψ)
+| starE :
+  BunchSubtreeSubst Γ (comma (prop φ) (prop ψ)) Γ' Δ  →
+  Entails Γ χ →
+  Entails Δ (star φ ψ) →
+  Entails Γ' χ
 | starI :
   Entails Γ φ →
   Entails Δ ψ →
