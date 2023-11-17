@@ -19,8 +19,25 @@ inductive Typ (P : Sort u)
 | star : Typ P → Typ P → Typ P
 
 namespace Typ
-scoped notation a " -* " b => dandy a b
-scoped notation a " * " b => star a b
+
+declare_syntax_cat bi_typ
+
+syntax:50 bi_typ:51 " -* " bi_typ:50 : bi_typ
+syntax:50 bi_typ:51 " → "  bi_typ:50 : bi_typ
+syntax:60 bi_typ:61 " ∨ "  bi_typ:50 : bi_typ
+syntax:70 bi_typ:71 " ∧ "  bi_typ:50 : bi_typ
+syntax:70 bi_typ:71 " * "  bi_typ:50 : bi_typ
+syntax term:71 : bi_typ
+
+syntax "[bi| " bi_typ " ]" : term
+macro_rules
+| `([bi| $t:term ]) => `(show Typ _ from $t)
+| `([bi| $t1 -* $t2 ]) => `(Typ.dandy [bi| $t1] [bi| $t2])
+| `([bi| $t1 → $t2 ]) => `(Typ.arr [bi| $t1] [bi| $t2])
+| `([bi| $t1 ∨ $t2 ]) => `(Typ.or [bi| $t1] [bi| $t2])
+| `([bi| $t1 ∧ $t2 ]) => `(Typ.and [bi| $t1] [bi| $t2])
+| `([bi| $t1 * $t2 ]) => `(Typ.star [bi| $t1] [bi| $t2])
+
 end Typ
 
 open Typ
@@ -35,8 +52,9 @@ inductive Bunch (P : Sort u)
 | semi : Bunch P → Bunch P → Bunch P
 
 namespace Bunch
-scoped infixr:10 " , " => Bunch.comma
-scoped infixr:10 " ; " => Bunch.semi
+scoped infixr:40 " , " => Bunch.comma
+scoped infixr:40 " ; " => Bunch.semi
+instance : Coe (Typ P) (Bunch P) := ⟨prop⟩
 end Bunch
 
 open Bunch in
@@ -126,6 +144,17 @@ theorem symm : BunchSubtreeSubst B1 b1 B2 b2 → BunchSubtreeSubst B2 b2 B1 b1 :
   intro h
   induction h <;> simp_all
 
+theorem symm_iff : BunchSubtreeSubst B1 b1 B2 b2 ↔ BunchSubtreeSubst B2 b2 B1 b1 :=
+  ⟨symm, symm⟩
+
+@[simp] theorem left_eq : BunchSubtreeSubst B1 B1 B2 b2 ↔ B2 = b2 := sorry
+@[simp] theorem right_eq : BunchSubtreeSubst B1 b1 B2 B2 ↔ B1 = b1 :=
+  by rw [symm_iff, left_eq]
+
+theorem trans : BunchSubtreeSubst B1 b1 B2 b2 → BunchSubtreeSubst B2 b2 B3 b3
+    → BunchSubtreeSubst B1 b1 B3 b3 := by
+  sorry
+
 end BunchSubtreeSubst
 
 /-- Bunch with a hole, written as `Γ(-)` in the original paper.
@@ -166,95 +195,108 @@ def BunchEquiv {P : Type u} : Bunch P → Bunch P → Prop :=
 def BunchEquiv.is_equivalence : Equivalence (@BunchEquiv P) :=
   EqvGen.is_equivalence _
 
+/- This gives access to `≈` notation on bunches. -/
 instance : HasEquiv (Bunch P) := ⟨BunchEquiv⟩
 
 
 
+set_option hygiene false in
+notation:35 Γ:40 " ⊢ " φ:40 => Entails Γ φ
+
 open Bunch in
 inductive Entails {P : Type u} : Bunch P → Typ P → Prop
-| id : Entails (prop φ) φ
+| id {φ : Typ P} :
+      φ ⊢ φ
 | equiv :
-  BunchEquiv Γ Δ →
-  Entails Γ φ →
-  Entails Δ φ
+    Γ ≈ Δ →
+    Γ ⊢ φ →
+      Δ ⊢ φ
 | weaken :
-  BunchSubtreeSubst Γ (semi Δ Δ') Γ' (Δ) →
-  Entails Γ' φ →
-  Entails Γ φ
+    BunchSubtreeSubst Γ (Δ; Δ') Γ' (Δ) →
+    Γ' ⊢ φ →
+      Γ ⊢ φ
 | contract :
-  BunchSubtreeSubst Γ (Δ) Γ' (semi Δ Δ) →
-  Entails Γ' φ →
-  Entails Γ φ
+    BunchSubtreeSubst Γ Δ Γ' (Δ; Δ) →
+    Γ' ⊢ φ →
+      Γ ⊢ φ
 /- TODO write down rest of the rules -/
-| empI : Entails cunit emp
+| empI : cunit ⊢ emp
 | empE :
-  BunchSubtreeSubst Γ cunit Γ' Δ →
-  Entails Γ χ →
-  Entails Δ emp →
-  Entails Γ' χ
-| dandyI :
-  Entails (comma Γ (prop φ)) ψ →
-  Entails Γ (φ -* ψ)
+    BunchSubtreeSubst Γ cunit Γ' Δ →
+    Γ ⊢ χ   →
+    Δ ⊢ emp →
+      Γ' ⊢ χ
+| dandyI {φ ψ : Typ P} :
+    Γ, φ ⊢ ψ →
+      Γ ⊢ [bi| φ -* ψ ]
 | dandyE :
-  Entails Γ (φ -* ψ) →
-  Entails Δ φ        →
-    Entails (Γ, Δ) ψ
+    Γ ⊢ [bi| φ -* ψ ] →
+    Δ ⊢ φ →
+      Γ, Δ ⊢ ψ
 | starI :
-  Entails Γ φ →
-  Entails Δ ψ →
-  Entails (comma Γ Δ) (star φ ψ)
-| starE :
-  BunchSubtreeSubst Γ (comma (prop φ) (prop ψ)) Γ' Δ  →
-  Entails Γ χ →
-  Entails Δ (star φ ψ) →
-  Entails Γ' χ
+    Γ ⊢ φ →
+    Δ ⊢ ψ →
+      Γ, Δ ⊢ [bi| φ * ψ ]
+| starE {φ ψ : Typ P} :
+    BunchSubtreeSubst Γ (φ, ψ) Γ' Δ  →
+    Γ ⊢ χ →
+    Δ ⊢ [bi| φ * ψ ] →
+      Γ' ⊢ χ
 | trI :
-  BunchSubtreeSubst Γ sunit Γ' Δ →
-  Entails Γ χ →
-  Entails Δ tr →
-  Entails Γ' χ
-| trE : Entails sunit tr
-| arrI :
-  Entails (semi Γ (prop φ)) ψ →
-  Entails Γ (arr φ ψ)
+    BunchSubtreeSubst Γ sunit Γ' Δ →
+    Γ ⊢ χ →
+    Δ ⊢ tr →
+      Γ' ⊢ χ
+| trE :
+      sunit ⊢ tr
+| arrI {φ : Typ P} :
+    Γ; φ ⊢ ψ →
+      Γ ⊢ [bi| φ → ψ ]
 | arrE :
-  Entails Γ (arr φ ψ) →
-  Entails Δ φ         →
-  Entails (Γ; Δ) ψ
+    Γ ⊢ [bi| φ → ψ ] →
+    Δ ⊢ φ →
+      Γ; Δ ⊢ ψ
 | andI :
-  Entails Γ φ →
-  Entails Δ ψ →
-  Entails (semi Γ Δ) (and φ ψ)
-| andE :
-  BunchSubtreeSubst Γ (semi (prop φ) (prop ψ)) Γ' Δ  →
-  Entails Γ χ →
-  Entails Δ (and φ ψ) →
-  Entails Γ' χ
+    Γ ⊢ φ →
+    Δ ⊢ ψ →
+      Γ; Δ ⊢ [bi| φ ∧ ψ ]
+| andE {φ ψ : Typ P} :
+    BunchSubtreeSubst Γ (φ; ψ) Γ' Δ  →
+    Γ ⊢ χ →
+    Δ ⊢ [bi| φ ∧ ψ ] →
+      Γ' ⊢ χ
 | orI1 :
-  Entails Γ φ₁ →
-  Entails Γ (or φ₁ φ₂)
+    Γ ⊢ φ₁ →
+      Γ ⊢ [bi| φ₁ ∨ φ₂]
 | orI2 :
-  Entails Γ φ₂ →
-  Entails Γ (or φ₁ φ₂)
-| orE :
-  BunchSubtreeSubst Δ (prop φ) Δ' (prop ψ) →
-  BunchSubtreeSubst Δ (prop φ) Δ'' Γ →
-  Entails Γ (or φ ψ) →
-  Entails Δ χ  →
-  Entails Δ' χ →
-  Entails Δ'' χ
+    Γ ⊢ φ₂ →
+      Γ ⊢ [bi| φ₁ ∨ φ₂]
+| orE {φ ψ : Typ P} :
+    BunchSubtreeSubst Δ φ Δ' ψ →
+    BunchSubtreeSubst Δ φ Δ'' Γ →
+    Γ ⊢ [bi| φ ∨ ψ ] →
+    Δ ⊢ χ →
+    Δ' ⊢ χ →
+      Δ'' ⊢ χ
 | flsE :
-  Entails Γ fls →
-  Entails Γ φ
+    Γ ⊢ fls →
+      Γ ⊢ φ
 
-theorem id_admissible
-  : Entails (.prop φ) φ
-  := by
-  sorry
+namespace Entails
+
+attribute [simp]
+  id equiv weaken contract
+  empI empE dandyI dandyE starI starE
+  trI trE arrI arrE andI andE orI1 orI2 orE flsE
+
+theorem id_admissible {φ : Typ P} : φ ⊢ φ := by
+  induction φ <;> aesop
 
 theorem cut_admissible {Γφ ΓΔ Δ : Bunch P} {φ : Typ P}
-    (hΓ : BunchSubtreeSubst ΓΔ Δ Γφ (.prop φ))
-  : Entails Γφ ψ → Entails Δ φ →
-    Entails ΓΔ ψ
+    (hΓ : BunchSubtreeSubst ΓΔ Δ Γφ φ)
+  : Γφ ⊢ ψ → Δ ⊢ φ →
+    ΓΔ ⊢ ψ
   := by
-  sorry
+  intro h1 h2
+  stop
+  induction h1
