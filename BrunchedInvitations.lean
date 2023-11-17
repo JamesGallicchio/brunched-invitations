@@ -103,44 +103,22 @@ inductive BunchSubtreeSubst {P : Sort u}
 
 namespace BunchSubtreeSubst
 
+attribute [refl] refl
+attribute [simp] refl commaR commaL semiR semiL
+
 theorem iff_subtree : BunchSubtreeSubst B1 b1 B1 b1 ↔ BunchSubtree B1 b1 := by
   constructor
   · intro h
     have : _ → _ → _ := by
       apply h.rec (motive := fun B1 b1 B2 b2 _ => B1 = B2 → b1 = b2 → BunchSubtree B1 b1)
-      case refl =>
-        rintro b1 b2 rfl _
-        rfl
-      case commaL =>
-        rintro b1 b2 b3 b4 b _ ih h1 rfl
-        cases h1
-        simp at ih
-        exact BunchSubtree.commaL ih
-      case commaR =>
-        rintro b1 b2 b3 b4 b _ ih h1 rfl
-        cases h1
-        simp at ih
-        exact BunchSubtree.commaR ih
-      case semiL =>
-        rintro b1 b2 b3 b4 b _ ih h1 rfl
-        cases h1
-        simp at ih
-        exact BunchSubtree.semiL ih
-      case semiR =>
-        rintro b1 b2 b3 b4 b _ ih h1 rfl
-        cases h1
-        simp at ih
-        exact BunchSubtree.semiR ih
-    simp at this; exact this
+        <;> simp_all
+    simp_all
   · intro h
-    induction h
-    case refl => exact .refl
-    case commaL => exact .commaL ‹_›
-    case commaR => exact .commaR ‹_›
-    case semiL => exact .semiL ‹_›
-    case semiR => exact .semiR ‹_›
+    induction h <;> simp_all
 
-theorem symm : BunchSubtreeSubst B1 b1 B2 b2 → BunchSubtreeSubst B2 b2 B1 b1 := by sorry
+theorem symm : BunchSubtreeSubst B1 b1 B2 b2 → BunchSubtreeSubst B2 b2 B1 b1 := by
+  intro h
+  induction h <;> simp_all
 
 end BunchSubtreeSubst
 
