@@ -166,23 +166,80 @@ instance : HasEquiv (Bunch P) := ⟨BunchEquiv⟩
 
 open Bunch in
 inductive Entails {P : Type u} : Bunch P → Typ P → Prop
+| id : Entails (prop φ) φ
+| equiv :
+  BunchEquiv Γ Δ →
+  Entails Γ φ →
+  Entails Δ φ
+| weaken :
+  BunchSubtreeSubst Γ (semi Δ Δ') Γ' (Δ) →
+  Entails Γ' φ →
+  Entails Γ φ
+| contract :
+  BunchSubtreeSubst Γ (Δ) Γ' (semi Δ Δ) →
+  Entails Γ' φ →
+  Entails Γ φ
 /- TODO write down rest of the rules -/
+| empI : Entails cunit emp
+| empE :
+  BunchSubtreeSubst Γ cunit Γ' Δ →
+  Entails Γ χ →
+  Entails Δ emp →
+  Entails Γ' χ
+| dandyI :
+  Entails (comma Γ (prop φ)) ψ →
+  Entails Γ (φ -* ψ)
 | dandyE :
   Entails Γ (φ -* ψ) →
   Entails Δ φ        →
     Entails (Γ, Δ) ψ
-| dandyI :
-  Entails (comma Γ (prop φ)) ψ →
-  Entails Γ (φ -* ψ)
+| starI :
+  Entails Γ φ →
+  Entails Δ ψ →
+  Entails (comma Γ Δ) (star φ ψ)
 | starE :
   BunchSubtreeSubst Γ (comma (prop φ) (prop ψ)) Γ' Δ  →
   Entails Γ χ →
   Entails Δ (star φ ψ) →
   Entails Γ' χ
-| starI :
+| trI :
+  BunchSubtreeSubst Γ sunit Γ' Δ →
+  Entails Γ χ →
+  Entails Δ tr →
+  Entails Γ' χ
+| trE : Entails sunit tr
+| arrI :
+  Entails (semi Γ (prop φ)) ψ →
+  Entails Γ (arr φ ψ)
+| arrE :
+  Entails Γ (arr φ ψ) →
+  Entails Δ φ         →
+  Entails (Γ; Δ) ψ
+| andI :
   Entails Γ φ →
   Entails Δ ψ →
-  Entails (comma Γ Δ) (star φ ψ)
+  Entails (semi Γ Δ) (and φ ψ)
+| andE :
+  BunchSubtreeSubst Γ (semi (prop φ) (prop ψ)) Γ' Δ  →
+  Entails Γ χ →
+  Entails Δ (and φ ψ) →
+  Entails Γ' χ
+| orI1 :
+  Entails Γ φ₁ →
+  Entails Γ (or φ₁ φ₂)
+| orI2 :
+  Entails Γ φ₂ →
+  Entails Γ (or φ₁ φ₂)
+| orE :
+  BunchSubtreeSubst Δ (prop φ) Δ' (prop ψ) →
+  BunchSubtreeSubst Δ (prop φ) Δ'' Γ →
+  Entails Γ (or φ ψ) →
+  Entails Δ χ  →
+  Entails Δ' χ →
+  Entails Δ'' χ
+| flsE :
+  Entails Γ fls →
+  Entails Γ φ
 
 theorem id_admissible
   : Entails (.prop φ) φ
