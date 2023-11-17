@@ -50,8 +50,28 @@ inductive BunchSubtree {P : Sort u} : Bunch P → Bunch P → Prop
 
 namespace BunchSubtree
 
-attribute [refl] BunchSubtree.refl
-theorem trans : BunchSubtree b1 b2 → BunchSubtree b2 b3 → BunchSubtree b1 b3 := by sorry
+attribute [refl] refl
+attribute [simp] refl commaL commaR semiL semiR
+
+open Bunch in
+theorem comma_inv :
+  BunchSubtree (BL, BR) b ↔
+    BunchSubtree BL b ∨ BunchSubtree BR b ∨ b = (BL, BR) := by
+  constructor
+  · intro h; cases h <;> simp_all
+  · intro h; cases h <;> aesop
+
+open Bunch in
+theorem semi_inv :
+  BunchSubtree (BL; BR) b ↔
+    BunchSubtree BL b ∨ BunchSubtree BR b ∨ b = (BL; BR) := by
+  constructor
+  · intro h; cases h <;> simp_all
+  · intro h; cases h <;> aesop
+
+theorem trans : BunchSubtree b1 b2 → BunchSubtree b2 b3 → BunchSubtree b1 b3 := by
+  intro h1 h2
+  induction h1 <;> cases h2 <;> simp_all
 
 end BunchSubtree
 
