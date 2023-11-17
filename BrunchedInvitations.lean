@@ -116,6 +116,12 @@ theorem iff_subtree : BunchSubtreeSubst B1 b1 B1 b1 ↔ BunchSubtree B1 b1 := by
   · intro h
     induction h <;> simp_all
 
+@[simp] theorem subtreeL : BunchSubtreeSubst B1 b1 B2 b2 → BunchSubtree B1 b1 := by
+  intro h; induction h <;> simp_all
+
+@[simp] theorem subtreeR : BunchSubtreeSubst B1 b1 B2 b2 → BunchSubtree B2 b2 := by
+  intro h; induction h <;> simp_all
+
 theorem symm : BunchSubtreeSubst B1 b1 B2 b2 → BunchSubtreeSubst B2 b2 B1 b1 := by
   intro h
   induction h <;> simp_all
