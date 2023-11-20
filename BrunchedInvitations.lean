@@ -147,13 +147,31 @@ theorem symm : BunchSubtreeSubst B1 b1 B2 b2 → BunchSubtreeSubst B2 b2 B1 b1 :
 theorem symm_iff : BunchSubtreeSubst B1 b1 B2 b2 ↔ BunchSubtreeSubst B2 b2 B1 b1 :=
   ⟨symm, symm⟩
 
-@[simp] theorem left_eq : BunchSubtreeSubst B1 B1 B2 b2 ↔ B2 = b2 := sorry
+theorem subtree_size_lt {B1 : Bunch P} : BunchSubtree B1 b1 → sizeOf B1 ≥ sizeOf b1 := by
+  intro h1
+  induction h1 <;> simp <;> linarith
+
+@[simp] theorem left_eq : BunchSubtreeSubst B1 B1 B2 b2 ↔ B2 = b2 := by
+  constructor
+  · intro h1; cases h1; rfl
+    case mp.commaL | mp.semiL =>
+      have t := subtree_size_lt <| subtreeL ‹_›
+      simp_all
+      exfalso
+      linarith
+    case mp.commaR | mp.semiR =>
+      have t := subtree_size_lt <| subtreeL ‹_›
+      simp_all
+  · intro h1; simp_all
+
 @[simp] theorem right_eq : BunchSubtreeSubst B1 b1 B2 B2 ↔ B1 = b1 :=
   by rw [symm_iff, left_eq]
 
 theorem trans : BunchSubtreeSubst B1 b1 B2 b2 → BunchSubtreeSubst B2 b2 B3 b3
     → BunchSubtreeSubst B1 b1 B3 b3 := by
-  sorry
+    intro h1 h2
+    induction h1 <;>
+    sorry
 
 end BunchSubtreeSubst
 
@@ -298,5 +316,5 @@ theorem cut_admissible {Γφ ΓΔ Δ : Bunch P} {φ : Typ P}
     ΓΔ ⊢ ψ
   := by
   intro h1 h2
+  induction h2;
   stop
-  induction h1
