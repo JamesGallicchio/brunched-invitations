@@ -8,7 +8,7 @@ open Typ Bunch
 set_option hygiene false in section
 local infix:35 " ⊢ " => SeqEntails
 
-inductive SeqEntails {P : Type u} : Bunch P → Typ P → Type u
+inductive SeqEntails {P : Type u} : Bunch P → Typ P → Prop
 | id_atom {A : P} : /-prop-/
       atom A ⊢ atom A
 | equiv :
@@ -89,13 +89,13 @@ theorem exchangeS (Γ : BunchWithHole P) (Δ₁ Δ₂ : Bunch P)
   exact h
 
 theorem id {A : Typ P} : A ⊢ A := by
-  rw [show (prop _ = BunchWithHole.id _) from rfl]
+  rw [show (prop A = BunchWithHole.hole _) from rfl]
   induction A
   case atom =>
     exact id_atom
   case arr A B ih1 ih2 =>
     apply arrR
-    suffices BunchWithHole.id (prop _;ᵇ _) ⊢ _ from this
+    suffices BunchWithHole.hole (prop _;ᵇ _) ⊢ _ from this
     apply exchangeS
     apply arrL
     · exact ih1
@@ -121,7 +121,7 @@ theorem id {A : Typ P} : A ⊢ A := by
     · exact orR2 ih2
   case dandy A B ih1 ih2 =>
     apply dandyR
-    suffices BunchWithHole.id (prop _,ᵇ _) ⊢ _ from this
+    suffices BunchWithHole.hole (prop _,ᵇ _) ⊢ _ from this
     apply exchangeC
     apply dandyL ih1 ih2
   case emp =>
@@ -135,13 +135,30 @@ def cut {Γ : BunchWithHole P} {Δ : Bunch P} {A C : Typ P}
         (D : Δ ⊢ A) (E : Γ A ⊢ C) : Γ Δ ⊢ C
   := by
   generalize hΓA : Γ A = ΓA at E
-  cases E
+  cases hE : E
   case id_atom A' =>
     simp at hΓA
     rcases hΓA with ⟨rfl,rfl⟩
     exact D
-  case equiv Δ' heq E =>
-    cases hΓA
+  case equiv | weaken | contract =>
     sorry
+  case empR => exfalso; simp at hΓA
+  case empL Γ' E1 =>
+    have := BunchWithHole.eq_inv hΓA
+    rcases this with (h|h|⟨Δ',Δ'',h1,h2,h3⟩)
+    case inr.inr =>
+      rw [← h2, ← h3]
+      apply empL
+      rw [h3]
+      have E' : Δ'' cunit A ⊢ C := by rw [← h3, h1]; exact E1
+      apply cut D E'
+    case inl | inr.inl =>
+      clear hE hΓA E
+      simp at h
+      rcases h with ⟨_,⟨rfl,rfl⟩,rfl⟩
+      simp_all
+      cases D
+      repeat sorry
   repeat sorry
-termination_by cut Γ Δ A C D E => (sizeOf D, sizeOf E)
+termination_by cut Γ Δ A C D E => 0
+decreasing_by sorry
