@@ -108,7 +108,7 @@ theorem sizeOf_pos (h : BunchWithHole P) : sizeOf h > 0 := by
   · rintro rfl; simp
 
 @[simp] theorem idem_subst : b = subst b Γ ↔ Γ = hole := by
-  rw [show _ = _ ↔ _ = _ from ⟨Eq.symm, Eq.symm⟩]
+  rw [eq_comm]
   simp
 
 instance : FunLike (BunchWithHole P) (Bunch P) (fun _ => Bunch P) where
@@ -129,7 +129,7 @@ instance : FunLike (BunchWithHole P) (Bunch P) (fun _ => Bunch P) where
 @[simp] theorem semiL_def  : semiL  l r b = (l b;ᵇ r) := rfl
 @[simp] theorem semiR_def  : semiR  l r b = (l;ᵇ r b) := rfl
 
-@[pp_dot] def comp (Γ₁ Γ₂ : BunchWithHole P) : BunchWithHole P :=
+@[pp_dot, simp] def comp (Γ₁ Γ₂ : BunchWithHole P) : BunchWithHole P :=
   match Γ₁ with
   | hole => Γ₂
   | commaL l r => commaL (comp l Γ₂) r
@@ -137,18 +137,12 @@ instance : FunLike (BunchWithHole P) (Bunch P) (fun _ => Bunch P) where
   | semiL  l r => semiL  (comp l Γ₂) r
   | semiR  l r => semiR  l (comp r Γ₂)
 
+@[simp] theorem comp_hole (Γ : BunchWithHole P) : Γ.comp hole = Γ :=
+  by induction Γ <;> simp_all
+
 theorem comp_def (h1 h2 : BunchWithHole P) (b : Bunch P)
   : (h1.comp h2) b = h1 (h2 b) := by
   induction h1 <;> simp_all [comp, FunLike.coe, subst]
-
-@[simp] theorem idem (Γ : BunchWithHole P) (b : Bunch P)
-    : Γ b = b ↔ Γ = hole := by
-  induction Γ <;> simp [FunLike.coe, subst] <;> (
-    intro h; have := congrArg sizeOf h
-    simp at this
-    zify at this
-    sorry
-  )
 
 @[simp] theorem eq_prop (Γ : BunchWithHole P)
     : Γ b = prop φ ↔ Γ = hole ∧ b = .prop φ := by
@@ -180,17 +174,115 @@ theorem comp_def (h1 h2 : BunchWithHole P) (b : Bunch P)
 theorem eq_comma (Γ : BunchWithHole P)
     : Γ b = (Δ₁,ᵇ Δ₂) ↔
         Γ = hole ∧ b = (Δ₁,ᵇ Δ₂)
-      ∨ ∃ Γ', Γ = .commaL Γ' Δ₂ ∧ Γ' b = Δ₁
-      ∨ ∃ Γ', Γ = .commaR Δ₁ Γ' ∧ Γ' b = Δ₂
+      ∨ (∃ Γ', Γ = .commaL Γ' Δ₂ ∧ Γ' b = Δ₁)
+      ∨ (∃ Γ', Γ = .commaR Δ₁ Γ' ∧ Γ' b = Δ₂)
   := by
   cases Γ <;> aesop
 
 theorem eq_semi (Γ : BunchWithHole P)
     : Γ b = (Δ₁;ᵇ Δ₂) ↔
         Γ = hole ∧ b = (Δ₁;ᵇ Δ₂)
-      ∨ ∃ Γ', Γ = .semiL Γ' Δ₂ ∧ Γ' b = Δ₁
-      ∨ ∃ Γ', Γ = .semiR Δ₁ Γ' ∧ Γ' b = Δ₂
+      ∨ (∃ Γ', Γ = .semiL Γ' Δ₂ ∧ Γ' b = Δ₁)
+      ∨ (∃ Γ', Γ = .semiR Δ₁ Γ' ∧ Γ' b = Δ₂)
   := by
   cases Γ <;> aesop
+
+theorem eq_inv {Γ Γ' : BunchWithHole P} {φ φ' : Bunch P}
+  : Γ φ = Γ' φ' → (∃ Δ, φ = Δ φ' ∧ Γ.comp Δ = Γ') ∨
+                  (∃ Δ, φ' = Δ φ ∧ Γ'.comp Δ = Γ) ∨
+                  (∀ ψ, ∃ Δ : BunchWithHole _, Δ φ = Γ' ψ) ∧
+                  (∀ ψ, ∃ Δ : BunchWithHole _, Δ φ' = Γ ψ)
+  := by
+  intro h
+  induction Γ generalizing Γ'
+  case hole => simp_all
+  case commaL ih1 =>
+    simp at h; rw [eq_comm, eq_comma] at h
+    rcases h with (⟨rfl,rfl⟩|⟨Γ'',rfl,h⟩|⟨Γ'',rfl,rfl⟩)
+    · simp
+    · simp; rw [eq_comm] at h
+      rcases ih1 h with (h1|h2|h3)
+      · simp [h1]
+      · simp [h2]
+      · apply Or.inr; apply Or.inr
+        constructor
+        · intro ψ; rcases h3.1 ψ with ⟨Δ,h3⟩
+          exact ⟨commaL Δ _, by simp [h3]; rfl⟩
+        · intro ψ; rcases h3.2 ψ with ⟨Δ,h3⟩
+          exact ⟨commaL Δ _, by simp [h3]; rfl⟩
+    · simp
+      constructor
+      · intro ψ
+        exact ⟨commaL _ _, by simp; exact ⟨rfl,rfl⟩⟩
+      · intro ψ
+        exact ⟨commaR _ _, by simp; exact ⟨rfl,rfl⟩⟩
+  case commaR ih1 =>
+    simp at h; rw [eq_comm, eq_comma] at h
+    rcases h with (⟨rfl,rfl⟩|⟨Γ'',rfl,rfl⟩|⟨Γ'',rfl,h⟩)
+    · simp
+    · simp
+      constructor
+      · intro ψ
+        exact ⟨commaR _ _, by simp; exact ⟨rfl,rfl⟩⟩
+      · intro ψ
+        exact ⟨commaL _ _, by simp; exact ⟨rfl,rfl⟩⟩
+    · simp; rw [eq_comm] at h
+      rcases ih1 h with (h1|h2|h3)
+      · simp [h1]
+      · simp [h2]
+      · apply Or.inr; apply Or.inr
+        constructor
+        · intro ψ; rcases h3.1 ψ with ⟨Δ,h3⟩
+          exact ⟨commaR _ Δ, by simp [h3]; rfl⟩
+        · intro ψ; rcases h3.2 ψ with ⟨Δ,h3⟩
+          exact ⟨commaR _ Δ, by simp [h3]; rfl⟩
+  case semiL ih1 =>
+    simp at h; rw [eq_comm, eq_semi] at h
+    rcases h with (⟨rfl,rfl⟩|⟨Γ'',rfl,h⟩|⟨Γ'',rfl,rfl⟩)
+    · simp
+    · simp; rw [eq_comm] at h
+      rcases ih1 h with (h1|h2|h3)
+      · simp [h1]
+      · simp [h2]
+      · apply Or.inr; apply Or.inr
+        constructor
+        · intro ψ; rcases h3.1 ψ with ⟨Δ,h3⟩
+          exact ⟨semiL Δ _, by simp [h3]; rfl⟩
+        · intro ψ; rcases h3.2 ψ with ⟨Δ,h3⟩
+          exact ⟨semiL Δ _, by simp [h3]; rfl⟩
+    · simp
+      constructor
+      · intro ψ
+        exact ⟨semiL _ _, by simp; exact ⟨rfl,rfl⟩⟩
+      · intro ψ
+        exact ⟨semiR _ _, by simp; exact ⟨rfl,rfl⟩⟩
+  case semiR ih1 =>
+    simp at h; rw [eq_comm, eq_semi] at h
+    rcases h with (⟨rfl,rfl⟩|⟨Γ'',rfl,rfl⟩|⟨Γ'',rfl,h⟩)
+    · simp
+    · simp
+      constructor
+      · intro ψ
+        exact ⟨semiR _ _, by simp; exact ⟨rfl,rfl⟩⟩
+      · intro ψ
+        exact ⟨semiL _ _, by simp; exact ⟨rfl,rfl⟩⟩
+    · simp; rw [eq_comm] at h
+      rcases ih1 h with (h1|h2|h3)
+      · simp [h1]
+      · simp [h2]
+      · apply Or.inr; apply Or.inr
+        constructor
+        · intro ψ; rcases h3.1 ψ with ⟨Δ,h3⟩
+          exact ⟨semiR _ Δ, by simp [h3]; rfl⟩
+        · intro ψ; rcases h3.2 ψ with ⟨Δ,h3⟩
+          exact ⟨semiR _ Δ, by simp [h3]; rfl⟩
+
+@[simp] theorem idem (Γ : BunchWithHole P) (b : Bunch P)
+    : Γ b = b ↔ Γ = hole := by
+  simp [FunLike.coe]
+
+@[simp] theorem idem' (Γ : BunchWithHole P) (b : Bunch P)
+    : b = Γ b ↔ Γ = hole := by
+  simp [FunLike.coe]
 
 end BunchWithHole
