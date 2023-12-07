@@ -190,92 +190,45 @@ theorem eq_semi (Γ : BunchWithHole P)
 theorem eq_inv {Γ Γ' : BunchWithHole P} {φ φ' : Bunch P}
   : Γ φ = Γ' φ' → (∃ Δ, φ = Δ φ' ∧ Γ.comp Δ = Γ') ∨
                   (∃ Δ, φ' = Δ φ ∧ Γ'.comp Δ = Γ) ∨
-                  (∀ ψ, ∃ Δ : BunchWithHole _, Δ φ = Γ' ψ) ∧
-                  (∀ ψ, ∃ Δ : BunchWithHole _, Δ φ' = Γ ψ)
+      (∃ Δ Δ' : Bunch P → BunchWithHole P,
+        Δ φ = Γ' ∧ Δ' φ' = Γ ∧
+        ∀ ψ ψ', Δ ψ ψ' = Δ' ψ' ψ
+      )
   := by
   intro h
   induction Γ generalizing Γ'
   case hole => simp_all
-  case commaL ih1 =>
-    simp at h; rw [eq_comm, eq_comma] at h
-    rcases h with (⟨rfl,rfl⟩|⟨Γ'',rfl,h⟩|⟨Γ'',rfl,rfl⟩)
+  case commaL ih | commaR ih | semiL ih | semiR ih =>
+    simp at h
+    rw [eq_comm] at h
+    first | rw [eq_comma] at h | rw [eq_semi] at h
+    rcases h with (⟨rfl,rfl⟩|⟨Γ'',rfl,h⟩|⟨Γ'',rfl,h⟩)
     · simp
-    · simp; rw [eq_comm] at h
-      rcases ih1 h with (h1|h2|h3)
-      · simp [h1]
-      · simp [h2]
-      · apply Or.inr; apply Or.inr
-        constructor
-        · intro ψ; rcases h3.1 ψ with ⟨Δ,h3⟩
-          exact ⟨commaL Δ _, by simp [h3]; rfl⟩
-        · intro ψ; rcases h3.2 ψ with ⟨Δ,h3⟩
-          exact ⟨commaL Δ _, by simp [h3]; rfl⟩
-    · simp
-      constructor
-      · intro ψ
-        exact ⟨commaL _ _, by simp; exact ⟨rfl,rfl⟩⟩
-      · intro ψ
-        exact ⟨commaR _ _, by simp; exact ⟨rfl,rfl⟩⟩
-  case commaR ih1 =>
-    simp at h; rw [eq_comm, eq_comma] at h
-    rcases h with (⟨rfl,rfl⟩|⟨Γ'',rfl,rfl⟩|⟨Γ'',rfl,h⟩)
-    · simp
-    · simp
-      constructor
-      · intro ψ
-        exact ⟨commaR _ _, by simp; exact ⟨rfl,rfl⟩⟩
-      · intro ψ
-        exact ⟨commaL _ _, by simp; exact ⟨rfl,rfl⟩⟩
-    · simp; rw [eq_comm] at h
-      rcases ih1 h with (h1|h2|h3)
-      · simp [h1]
-      · simp [h2]
-      · apply Or.inr; apply Or.inr
-        constructor
-        · intro ψ; rcases h3.1 ψ with ⟨Δ,h3⟩
-          exact ⟨commaR _ Δ, by simp [h3]; rfl⟩
-        · intro ψ; rcases h3.2 ψ with ⟨Δ,h3⟩
-          exact ⟨commaR _ Δ, by simp [h3]; rfl⟩
-  case semiL ih1 =>
-    simp at h; rw [eq_comm, eq_semi] at h
-    rcases h with (⟨rfl,rfl⟩|⟨Γ'',rfl,h⟩|⟨Γ'',rfl,rfl⟩)
-    · simp
-    · simp; rw [eq_comm] at h
-      rcases ih1 h with (h1|h2|h3)
-      · simp [h1]
-      · simp [h2]
-      · apply Or.inr; apply Or.inr
-        constructor
-        · intro ψ; rcases h3.1 ψ with ⟨Δ,h3⟩
-          exact ⟨semiL Δ _, by simp [h3]; rfl⟩
-        · intro ψ; rcases h3.2 ψ with ⟨Δ,h3⟩
-          exact ⟨semiL Δ _, by simp [h3]; rfl⟩
-    · simp
-      constructor
-      · intro ψ
-        exact ⟨semiL _ _, by simp; exact ⟨rfl,rfl⟩⟩
-      · intro ψ
-        exact ⟨semiR _ _, by simp; exact ⟨rfl,rfl⟩⟩
-  case semiR ih1 =>
-    simp at h; rw [eq_comm, eq_semi] at h
-    rcases h with (⟨rfl,rfl⟩|⟨Γ'',rfl,rfl⟩|⟨Γ'',rfl,h⟩)
-    · simp
-    · simp
-      constructor
-      · intro ψ
-        exact ⟨semiR _ _, by simp; exact ⟨rfl,rfl⟩⟩
-      · intro ψ
-        exact ⟨semiL _ _, by simp; exact ⟨rfl,rfl⟩⟩
-    · simp; rw [eq_comm] at h
-      rcases ih1 h with (h1|h2|h3)
-      · simp [h1]
-      · simp [h2]
-      · apply Or.inr; apply Or.inr
-        constructor
-        · intro ψ; rcases h3.1 ψ with ⟨Δ,h3⟩
-          exact ⟨semiR _ Δ, by simp [h3]; rfl⟩
-        · intro ψ; rcases h3.2 ψ with ⟨Δ,h3⟩
-          exact ⟨semiR _ Δ, by simp [h3]; rfl⟩
+    case inr.inl | inr.inr =>
+      first
+      | simp; rw [eq_comm] at h
+        rcases ih h with (h1|h2|⟨Δ,Δ',rfl,rfl,h3⟩)
+          <;> clear ih h
+        · simp [h1]
+        · simp [h2]
+        · apply Or.inr; apply Or.inr
+          iterate 2 (
+            first | refine ⟨(fun x => commaL _ _),rfl,?_⟩
+                  | refine ⟨(fun x => commaR _ _),rfl,?_⟩
+                  | refine ⟨(fun x => semiL _ _),rfl,?_⟩
+                  | refine ⟨(fun x => semiR _ _),rfl,?_⟩
+          )
+          intro ψ ψ'
+          simp [h3]
+      | cases h; simp
+        iterate 2 (
+          first | refine ⟨(fun x => commaL _ _),rfl,?_⟩
+                | refine ⟨(fun x => commaR _ _),rfl,?_⟩
+                | refine ⟨(fun x => semiL _ _),rfl,?_⟩
+                | refine ⟨(fun x => semiR _ _),rfl,?_⟩
+        )
+        intro ψ ψ'
+        simp
 
 @[simp] theorem idem (Γ : BunchWithHole P) (b : Bunch P)
     : Γ b = b ↔ Γ = hole := by
