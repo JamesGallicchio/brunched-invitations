@@ -79,13 +79,13 @@ namespace SeqEntails
 theorem exchangeC (Γ : BunchWithHole P) (Δ₁ Δ₂ : Bunch P)
   : Γ (Δ₂,ᵇ Δ₁) ⊢ C → Γ (Δ₁,ᵇ Δ₂) ⊢ C := by
   intro h
-  apply equiv (.subbunch Γ <| .ofPre .commaComm)
+  apply equiv (.subbunch Γ <| .commaComm)
   exact h
 
 theorem exchangeS (Γ : BunchWithHole P) (Δ₁ Δ₂ : Bunch P)
   : Γ (Δ₂;ᵇ Δ₁) ⊢ C → Γ (Δ₁;ᵇ Δ₂) ⊢ C := by
   intro h
-  apply equiv (.subbunch Γ <| .ofPre .semiComm)
+  apply equiv (.subbunch Γ <| .semiComm)
   exact h
 
 theorem id {A : Typ P} : A ⊢ A := by

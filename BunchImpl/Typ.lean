@@ -17,7 +17,7 @@ inductive Typ (P : Sort u)
 | dandy : Typ P → Typ P → Typ P
 | emp : Typ P
 | star : Typ P → Typ P → Typ P
-deriving Inhabited
+deriving Inhabited, DecidableEq
 
 namespace Typ
 
