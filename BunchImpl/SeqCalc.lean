@@ -140,7 +140,30 @@ def cut {Γ : BunchWithHole P} {Δ : Bunch P} {A C : Typ P}
     simp at hΓA
     rcases hΓA with ⟨rfl,rfl⟩
     exact D
-  case equiv | weaken | contract =>
+  case equiv Δ₁ Γ' E₁ =>
+    sorry
+  case weaken Δ₁ Δ₂ Γ' E₁ =>
+    have := BunchWithHole.eq_inv hΓA
+    simp at this
+    rcases this with (⟨Δ',h1,rfl⟩|⟨Δ',h1,Δ'',h2,h3⟩)
+    case inr =>
+      rw [← h2, ← h3]
+      apply weaken
+      rw [h3]
+      rw [← h1, h3] at E₁
+      apply cut D E₁
+    case inl =>
+      rw [eq_comm, BunchWithHole.eq_semi] at h1
+      simp at h1
+      rcases h1 with (⟨Γ'',rfl,rfl⟩|⟨Γ'',rfl,rfl⟩)
+      · simp [BunchWithHole.comp_def]
+        apply weaken
+        rw [← BunchWithHole.comp_def] at E₁ ⊢
+        apply cut D E₁
+      · simp [BunchWithHole.comp_def]
+        apply weaken
+        apply E₁
+  case contract Δ' Γ' E₁ =>
     sorry
   case empR => exfalso; simp at hΓA
   case empL Γ' E1 =>
