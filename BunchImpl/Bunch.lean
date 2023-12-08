@@ -63,6 +63,14 @@ instance : Coe (Typ P) (Bunch P) := ⟨prop⟩
   intro h; have := congrArg sizeOf h; clear h
   simp at this
 
+def isComma : Bunch P → Bool
+| .comma _ _ | .cunit => true
+| _ => false
+
+def isSemi : Bunch P → Bool
+| .semi _ _ | .sunit => true
+| _ => false
+
 end Bunch
 
 open Bunch

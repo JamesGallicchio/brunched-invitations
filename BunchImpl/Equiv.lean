@@ -152,4 +152,15 @@ theorem semiL {b1 b2 b3 : Bunch P} : b1 ≈ b2 → (b1;ᵇ b3) ≈ (b2;ᵇ b3) :
 theorem semiR {b1 b2 b3 : Bunch P} : b1 ≈ b2 → (b3;ᵇ b1) ≈ (b3;ᵇ b2) :=
   fun h => subbunch (.semiR _ .hole) h
 
+
+
+theorem hole_prop_inv {Γ : BunchWithHole P} {A : Typ P} {Δ : Bunch P}
+  : Γ A ≈ Δ → ∃ Γ' : BunchWithHole P, Δ = Γ' A := by
+  intro e
+  induction Δ
+  case prop =>
+    simp at e
+    refine ⟨.hole,?_⟩; simp
+  sorry
+
 end Equiv
